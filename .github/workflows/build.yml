@@ -1,0 +1,22 @@
+name: Build TWRP
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+    steps:
+    - name: Очистка и подготовка сервера
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y bc build-essential tar zip curl git
+    - name: Сборка TWRP
+      run: |
+        mkdir twrp && cd twrp
+        curl -sL https://githubusercontent.com > repo && chmod a+x repo
+        ./repo init -u https://github.com{{ github.repository }} -b twrp-12.1
+        ./repo sync -j$(nproc) --force-sync
+        git clone https://github.com -b android-12.1 device/samsung/gts7xllite
+        . build/envsetup.sh
+        lunch twrp_gts7xllite-eng
+        mka recoveryimage -j$(nproc)
