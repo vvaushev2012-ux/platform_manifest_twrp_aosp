@@ -6,19 +6,13 @@ jobs:
   build:
     runs-on: ubuntu-24.04
     steps:
-    - name: Ручное освобождение места и настройка памяти
-      run: |
-        # 1. Безопасно удаляем тяжелый встроенный Android SDK от GitHub, чтобы освободить 25 ГБ места
-        sudo rm -rf /usr/local/lib/android
-        
-        # 2. Создаем гигантский файл подкачки на 16 ГБ стандартными командами Linux
-        sudo swapoff -a
-        sudo dd if=/dev/zero of=/swapfile bs=1M count=16384
-        sudo chmod 600 /swapfile
-        sudo mkswap /swapfile
-        sudo swapon /swapfile
+    # 1. Официальное действие из маркетплейса GitHub. Создает 12 ГБ Swap БЕЗ опасных rm -rf и скрытых ошибок
+    - name: Настройка безопасной виртуальной памяти
+      uses: pierotofy/set-swap-space@v1.0
+      with:
+        swap-size-gb: 12
 
-    - name: Подготовка зависимостей
+    - name: Подготовка системы
       run: |
         sudo apt-get update
         sudo apt-get install -y bc build-essential tar zip curl git python3 wget
@@ -31,19 +25,18 @@ jobs:
         
         mkdir twrp && cd twrp
         
-        # Скачиваем рабочий repo через wget
+        # Скачиваем рабочий скрипт repo через wget
         wget -q https://githubusercontent.com -O ./repo
-        chmod 777 ./repo
         chmod +x ./repo
         
         # Запускаем инициализацию и тихое скачивание
         ./repo init -u https://github.com -b twrp-12.1 --no-clone-bundle --depth=1
         ./repo sync -j2 --force-sync --no-clone-bundle --no-tags -q
         
-        # Скачиваем дерево устройства для Samsung Tab S7 FE 5G
+        # Скачиваем дерево устройства для вашего Samsung Tab S7 FE 5G
         git clone -q https://github.com -b android-12.1 device/samsung/gts7xllite
         
-        # Компиляция
+        # Запуск компиляции
         . build/envsetup.sh
         lunch twrp_gts7xllite-eng
         mka recoveryimage -j1
