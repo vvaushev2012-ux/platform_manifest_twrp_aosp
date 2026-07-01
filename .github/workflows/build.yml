@@ -6,13 +6,12 @@ jobs:
   build:
     runs-on: ubuntu-20.04
     steps:
-    - name: Очистка и подготовка сервера
+    - name: Подготовка сервера
       run: |
         sudo apt-get update
         sudo apt-get install -y bc build-essential tar zip curl git
     - name: Сборка TWRP
       run: |
-        # Отключаем интерактивные вопросы для Git и Repo
         git config --global user.email "bot@twrp.me"
         git config --global user.name "TWRP-Bot"
         export REPO_NOT_TERMINAL=1
@@ -20,11 +19,13 @@ jobs:
         mkdir twrp && cd twrp
         curl -sL https://githubusercontent.com > repo && chmod a+x repo
         
-        # Запускаем init в режиме "без вопросов" (--no-clone-bundle)
-        ./repo init -u https://github.com{{ github.repository }} -b twrp-12.1 --no-clone-bundle --depth=1
+        # ИСКУССТВЕННО ИСПРАВЛЕНО: Указана прямая ссылка на официальный исходный код TWRP вместо пустого форка
+        ./repo init -u https://github.com/minimal-manifest-twrp/platform_manifest_twrp_aosp.git -b twrp-12.1 --no-clone-bundle --depth=1
         ./repo sync -j$(nproc) --force-sync --no-clone-bundle --no-tags
         
+        # Скачиваем дерево устройства именно для вашего Samsung Tab S7 FE 5G
         git clone https://github.com -b android-12.1 device/samsung/gts7xllite
+        
         . build/envsetup.sh
         lunch twrp_gts7xllite-eng
         mka recoveryimage -j$(nproc)
