@@ -6,11 +6,17 @@ jobs:
   build:
     runs-on: ubuntu-24.04
     steps:
-    # 1. Используем официальное действие GitHub для автоматического расширения памяти до 12 ГБ
-    - name: Увеличение оперативной памяти (Swap)
-      uses: thejerrybao/setup-swap-space@v1
+    # 1. Скрипт очистки сервера: удаляем лишний софт и освобождаем тонну места под память
+    - name: Максимальное освобождение памяти сервера
+      uses: easimon/maximize-build-space@master
       with:
-        swap-size-gb: 12
+        root-reserve-mb: 2048
+        swap-size-mb: 24576
+        remove-dotnet: 'true'
+        remove-android: 'true'
+        remove-haskell: 'true'
+        remove-codeql: 'true'
+        remove-docker-images: 'true'
 
     - name: Подготовка сервера
       run: |
@@ -30,9 +36,9 @@ jobs:
         chmod 777 ./repo
         chmod +x ./repo
         
-        # Запускаем init и sync в 1 поток для жесткой экономии ресурсов
-        ./repo init -u https://github.com/minimal-manifest-twrp/platform_manifest_twrp_aosp.git -b twrp-12.1 --no-clone-bundle --depth=1
-        ./repo sync -j1 --force-sync --no-clone-bundle --no-tags -q
+        # Запускаем init и sync
+        ./repo init -u https://github.com -b twrp-12.1 --no-clone-bundle --depth=1
+        ./repo sync -j2 --force-sync --no-clone-bundle --no-tags -q
         
         # Скачиваем дерево устройства для Samsung Tab S7 FE 5G
         git clone -q https://github.com -b android-12.1 device/samsung/gts7xllite
@@ -40,5 +46,5 @@ jobs:
         . build/envsetup.sh
         lunch twrp_gts7xllite-eng
         
-        # Запускаем компиляцию строго в 1 поток (-j1), чтобы сервер гарантированно не упал по памяти
+        # Компилируем в 1 поток, имея гигантский запас виртуальной памяти в 24 ГБ
         mka recoveryimage -j1
