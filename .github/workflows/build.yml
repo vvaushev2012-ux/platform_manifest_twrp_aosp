@@ -6,16 +6,18 @@ jobs:
   build:
     runs-on: ubuntu-24.04
     steps:
-    # 1. Официальное действие из маркетплейса GitHub. Создает 12 ГБ Swap БЕЗ опасных rm -rf и скрытых ошибок
-    - name: Настройка безопасной виртуальной памяти
-      uses: pierotofy/set-swap-space@v1.0
-      with:
-        swap-size-gb: 12
-
-    - name: Подготовка системы
+    - name: Подготовка системы и памяти
       run: |
+        # 1. Обновляем пакеты и ставим нужный софт
         sudo apt-get update
         sudo apt-get install -y bc build-essential tar zip curl git python3 wget
+        
+        # 2. Создаем файл подкачки на 10 ГБ чистыми командами Linux
+        sudo swapoff -a
+        sudo dd if=/dev/zero of=/swapfile bs=1M count=10240
+        sudo chmod 600 /swapfile
+        sudo mkswap /swapfile
+        sudo swapon /swapfile
 
     - name: Сборка TWRP
       run: |
@@ -36,7 +38,7 @@ jobs:
         # Скачиваем дерево устройства для вашего Samsung Tab S7 FE 5G
         git clone -q https://github.com -b android-12.1 device/samsung/gts7xllite
         
-        # Запуск компиляции
+        # Запуск компиляции в безопасном режиме (2 потока)
         . build/envsetup.sh
         lunch twrp_gts7xllite-eng
-        mka recoveryimage -j1
+        mka recoveryimage -j2
