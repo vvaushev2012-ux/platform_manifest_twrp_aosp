@@ -12,10 +12,18 @@ jobs:
         sudo apt-get install -y bc build-essential tar zip curl git
     - name: Сборка TWRP
       run: |
+        # Отключаем интерактивные вопросы для Git и Repo
+        git config --global user.email "bot@twrp.me"
+        git config --global user.name "TWRP-Bot"
+        export REPO_NOT_TERMINAL=1
+        
         mkdir twrp && cd twrp
         curl -sL https://githubusercontent.com > repo && chmod a+x repo
-        ./repo init -u https://github.com{{ github.repository }} -b twrp-12.1
-        ./repo sync -j$(nproc) --force-sync
+        
+        # Запускаем init в режиме "без вопросов" (--no-clone-bundle)
+        ./repo init -u https://github.com{{ github.repository }} -b twrp-12.1 --no-clone-bundle --depth=1
+        ./repo sync -j$(nproc) --force-sync --no-clone-bundle --no-tags
+        
         git clone https://github.com -b android-12.1 device/samsung/gts7xllite
         . build/envsetup.sh
         lunch twrp_gts7xllite-eng
