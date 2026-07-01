@@ -9,7 +9,7 @@ jobs:
     - name: Подготовка сервера
       run: |
         sudo apt-get update
-        sudo apt-get install -y bc build-essential tar zip curl git
+        sudo apt-get install -y bc build-essential tar zip curl git python3
     - name: Сборка TWRP
       run: |
         git config --global user.email "bot@twrp.me"
@@ -17,13 +17,19 @@ jobs:
         export REPO_NOT_TERMINAL=1
         
         mkdir twrp && cd twrp
-        curl -sL https://githubusercontent.com > repo && chmod a+x repo
         
-        # ИСКУССТВЕННО ИСПРАВЛЕНО: Указана прямая ссылка на официальный исходный код TWRP вместо пустого форка
-        ./repo init -u https://github.com/minimal-manifest-twrp/platform_manifest_twrp_aosp.git -b twrp-12.1 --no-clone-bundle --depth=1
+        # Скачиваем скрипт repo
+        curl -sL https://githubusercontent.com > ./repo
+        
+        # ПРИНУДИТЕЛЬНО даем права на запуск (исправление ошибки 126)
+        chmod 777 ./repo
+        chmod +x ./repo
+        
+        # Запускаем init и sync
+        ./repo init -u https://github.com -b twrp-12.1 --no-clone-bundle --depth=1
         ./repo sync -j$(nproc) --force-sync --no-clone-bundle --no-tags
         
-        # Скачиваем дерево устройства именно для вашего Samsung Tab S7 FE 5G
+        # Скачиваем дерево устройства для Samsung Tab S7 FE 5G
         git clone https://github.com -b android-12.1 device/samsung/gts7xllite
         
         . build/envsetup.sh
