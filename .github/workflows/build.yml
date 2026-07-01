@@ -6,19 +6,19 @@ jobs:
   build:
     runs-on: ubuntu-24.04
     steps:
-    # 1. Скрипт очистки сервера: удаляем лишний софт и освобождаем тонну места под память
-    - name: Максимальное освобождение памяти сервера
-      uses: easimon/maximize-build-space@master
-      with:
-        root-reserve-mb: 2048
-        swap-size-mb: 24576
-        remove-dotnet: 'true'
-        remove-android: 'true'
-        remove-haskell: 'true'
-        remove-codeql: 'true'
-        remove-docker-images: 'true'
+    - name: Ручное освобождение места и настройка памяти
+      run: |
+        # 1. Безопасно удаляем тяжелый встроенный Android SDK от GitHub, чтобы освободить 25 ГБ места
+        sudo rm -rf /usr/local/lib/android
+        
+        # 2. Создаем гигантский файл подкачки на 16 ГБ стандартными командами Linux
+        sudo swapoff -a
+        sudo dd if=/dev/zero of=/swapfile bs=1M count=16384
+        sudo chmod 600 /swapfile
+        sudo mkswap /swapfile
+        sudo swapon /swapfile
 
-    - name: Подготовка сервера
+    - name: Подготовка зависимостей
       run: |
         sudo apt-get update
         sudo apt-get install -y bc build-essential tar zip curl git python3 wget
@@ -31,20 +31,19 @@ jobs:
         
         mkdir twrp && cd twrp
         
-        # Скачиваем repo через wget
+        # Скачиваем рабочий repo через wget
         wget -q https://githubusercontent.com -O ./repo
         chmod 777 ./repo
         chmod +x ./repo
         
-        # Запускаем init и sync
+        # Запускаем инициализацию и тихое скачивание
         ./repo init -u https://github.com -b twrp-12.1 --no-clone-bundle --depth=1
         ./repo sync -j2 --force-sync --no-clone-bundle --no-tags -q
         
         # Скачиваем дерево устройства для Samsung Tab S7 FE 5G
         git clone -q https://github.com -b android-12.1 device/samsung/gts7xllite
         
+        # Компиляция
         . build/envsetup.sh
         lunch twrp_gts7xllite-eng
-        
-        # Компилируем в 1 поток, имея гигантский запас виртуальной памяти в 24 ГБ
         mka recoveryimage -j1
