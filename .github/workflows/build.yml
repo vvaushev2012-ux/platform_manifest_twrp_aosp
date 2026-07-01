@@ -6,10 +6,17 @@ jobs:
   build:
     runs-on: ubuntu-24.04
     steps:
-    - name: Подготовка сервера
+    - name: Подготовка сервера и памяти
       run: |
         sudo apt-get update
         sudo apt-get install -y bc build-essential tar zip curl git python3 wget
+        
+        # РЕШЕНИЕ ОШИБКИ 4: Создаем дополнительный файл подкачки на 8 ГБ
+        sudo swapoff -a
+        sudo dd if=/dev/zero of=/swapfile bs=1M count=8192
+        sudo chmod 600 /swapfile
+        sudo mkswap /swapfile
+        sudo swapon /swapfile
     - name: Сборка TWRP
       run: |
         git config --global user.email "bot@twrp.me"
@@ -18,20 +25,20 @@ jobs:
         
         mkdir twrp && cd twrp
         
-        # ИСПРАВЛЕНИЕ: Качаем скрипт repo через бронебойный wget вместо капризного curl
+        # Скачиваем repo через wget
         wget -q https://githubusercontent.com -O ./repo
-        
-        # Открываем права на запуск
         chmod 777 ./repo
         chmod +x ./repo
         
-        # Запускаем init и sync без загрузки лишних логов, чтобы сеть не падала
-        ./repo init -u https://github.com/minimal-manifest-twrp/platform_manifest_twrp_aosp.git -b twrp-12.1 --no-clone-bundle --depth=1
-        ./repo sync -j$(nproc) --force-sync --no-clone-bundle --no-tags -q
+        # Запускаем init и sync в тихом режиме
+        ./repo init -u https://github.com -b twrp-12.1 --no-clone-bundle --depth=1
+        ./repo sync -j2 --force-sync --no-clone-bundle --no-tags -q
         
         # Скачиваем дерево устройства для Samsung Tab S7 FE 5G
         git clone -q https://github.com -b android-12.1 device/samsung/gts7xllite
         
         . build/envsetup.sh
         lunch twrp_gts7xllite-eng
-        mka recoveryimage -j$(nproc)
+        
+        # РЕШЕНИЕ ОШИБКИ 4: Ограничиваем сборку строго в 2 потока (-j2), чтобы не взорвать оперативную память
+        mka recoveryimage -j2
